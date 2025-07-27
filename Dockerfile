@@ -1,16 +1,15 @@
-FROM ubuntu:latest AS build
+FROM maven:3.8.4-openjdk-17-slim AS build
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-RUN apt-get update
-RUN apt-get install openjdk-17-jdk -y
-COPY . .
-
-RUN apt-get install maven -y
-RUN mvn clean install
-
+# Etapa de runtime
 FROM openjdk:17-jdk-slim
+VOLUME /tmp
+ARG JAVA_OPTS
+ENV JAVA_OPTS=$JAVA_OPTS
 
-EXPOSE 8060
-
-COPY --from=build /target/crud-spring-0.0.1-SNAPSHOT.jar app.jar
-
-ENTRYPOINT [ "java", "-jar", "app.jar" ]
+COPY --from=build /app/target/sipc-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8080
+ENTRYPOINT exec java $JAVA_OPTS -Djava.security.egd=file:/dev/./urandom -jar app.jar
